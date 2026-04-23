@@ -11,33 +11,34 @@ define view entity Z_CDS_VBCHG_ALL
      and hdr.objectid   = pos.objectid
      and hdr.changenr   = pos.changenr
 
-    inner join bseg as pay
-      on pay.lifnr = hdr.objectid
-
-    inner join bkpf as doc
-      on doc.bukrs = pay.bukrs
-     and doc.belnr = pay.belnr
-     and doc.gjahr = pay.gjahr
+    inner join I_JournalEntryItem as je
+      on je.Supplier = hdr.objectid
 
 {
-      key hdr.objectid   as Vendor,
-      key hdr.changenr   as ChangeNumber,
-      key pay.bukrs      as CompanyCode,
-      key pay.belnr      as AccountingDocument,
-      key pay.gjahr      as FiscalYear,
+      key hdr.objectid            as Vendor,
+      key hdr.changenr           as ChangeNumber,
+      key je.CompanyCode         as CompanyCode,
+      key je.AccountingDocument  as AccountingDocument,
+      key je.FiscalYear          as FiscalYear,
+      key je.LedgerGLLineItem    as LineItem,
 
-          hdr.username   as ChangedBy,
-          hdr.udate      as ChangeDate,
-          hdr.utime      as ChangeTime,
+          hdr.username           as ChangedBy,
+          hdr.udate              as ChangeDate,
+          hdr.utime              as ChangeTime,
 
-          pos.tabname    as TableName,
-          pos.fname      as FieldName,
-          pos.value_old  as OldValue,
-          pos.value_new  as NewValue,
+          pos.tabname            as TableName,
+          pos.fname              as FieldName,
+          pos.value_old          as OldValue,
+          pos.value_new          as NewValue,
 
-          doc.budat      as PostingDate,
-          pay.wrbtr      as PaymentAmount,
-          pay.shkzg      as DebitCreditInd
+          je.PostingDate         as PostingDate,
+
+          @Semantics.amount.currencyCode: 'Currency'
+          je.AmountInCompanyCodeCurrency as Amount,
+
+          je.CompanyCodeCurrency as Currency,
+
+          je.DocumentItemText    as ItemText
 }
 where hdr.objectclas = 'KRED'
   and pos.tabname    = 'LFBK'
@@ -46,5 +47,4 @@ where hdr.objectclas = 'KRED'
     or pos.fname = 'BANKL'
     or pos.fname = 'BANKS'
       )
-  and doc.budat >= hdr.udate
-  and doc.budat <= add_days( hdr.udate, 7 )
+  and je.PostingDate >= hdr.udate
